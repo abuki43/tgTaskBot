@@ -36,22 +36,22 @@ export async function handleBroadcast(msg: any, adminChatId: string, adminBot:Te
     });
 }
 
-export async function handleAddTask(msg: any, adminChatId: string, adminBot:TelegramBot) {
+export async function handleAddTask(msg: TelegramBot.Message, adminChatId: string, adminBot: TelegramBot) {
     if (msg.chat.id.toString() !== adminChatId) return;
     
     adminBot.sendMessage(msg.chat.id, 
         'Please enter task details in the following format:\n' +
-        'Title | Video URL\n\n' +
-        'Example:\nWatch this video | https://youtube.com/watch?v=123'
-    );
+        'Title | Video URL | Points\n\n' +
+        'Example:\nWatch this video | https://youtube.com/watch?v=123 | 50');
     
     adminBot.once('message', (taskMsg) => {
         if (!taskMsg.text) return;
         
-        const [title, video_url] = taskMsg.text.split('|').map(s => s.trim());
+        const [title, video_url, points] = taskMsg.text.split('|').map(s => s.trim());
+        const pointsValue = parseInt(points) || 20; // Default to 20 if not specified
         
         if (!title || !video_url) {
-            adminBot.sendMessage(msg.chat.id, 'Invalid format. Please try again.');
+            adminBot.sendMessage(msg.chat.id, '❌ Invalid format. Please try again.');
             return;
         }
 
@@ -59,22 +59,32 @@ export async function handleAddTask(msg: any, adminChatId: string, adminBot:Tele
         try {
             new URL(video_url);
         } catch {
-            adminBot.sendMessage(msg.chat.id, 'Invalid video URL. Please try again.');
+            adminBot.sendMessage(msg.chat.id, '❌ Invalid video URL. Please try again.');
             return;
         }
         
         if (title.length < 3 || title.length > 100) {
-            adminBot.sendMessage(msg.chat.id, 'Title must be between 3 and 100 characters.');
+            adminBot.sendMessage(msg.chat.id, '❌ Title must be between 3 and 100 characters.');
+            return;
+        }
+
+        if (pointsValue < 1 || pointsValue > 1000) {
+            adminBot.sendMessage(msg.chat.id, '❌ Points must be between 1 and 1000.');
             return;
         }
         
-        db.run(`INSERT INTO tasks (title, video_url) VALUES (?, ?)`,
-            [title, video_url], (err) => {
+        db.run(`INSERT INTO tasks (title, video_url, points) VALUES (?, ?, ?)`,
+            [title, video_url, pointsValue], (err) => {
             if (err) {
-                adminBot.sendMessage(msg.chat.id, 'Error adding task.');
+                adminBot.sendMessage(msg.chat.id, `❌ Error adding task.: ${err?.message}`);
                 return;
             }
-            adminBot.sendMessage(msg.chat.id, 'Task added successfully!');
+            adminBot.sendMessage(msg.chat.id, 
+                '✅ Task added successfully!\n\n' +
+                `📝 Title: ${title}\n` +
+                `🎥 URL: ${video_url}\n` +
+                `💰 Points: ${pointsValue}`
+            );
         });
     });
 }

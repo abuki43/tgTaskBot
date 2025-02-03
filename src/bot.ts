@@ -149,39 +149,48 @@ bot.on('callback_query', (callbackQuery) => {
         }
 
         // Complete the task
-        db.run(`INSERT INTO completed_tasks (user_id, task_id, completed_at) VALUES (?, ?, datetime('now'))`, 
-            [userId, taskIdNum], (err) => {
-            if (!err) {
-                db.run(`UPDATE users SET points = points + 20 WHERE telegram_id = ?`, 
-                    [userId], (err) => {
-                    if (!err) {
-                        bot.editMessageReplyMarkup({
-                            inline_keyboard: [[
-                                { text: '✅ Task Completed', callback_data: 'completed' }
-                            ]]
-                        }, {
-                            chat_id: msg.chat.id,
-                            message_id: msg.message_id
-                        });
-                        bot.sendMessage(msg.chat.id, 
-                            '🎉 *Task Completed!*\n\n' +
-                            '🎯 You earned 20 points!\n' +
-                            '💰 Use /balance to check your earnings\n' +
-                            '📝 Use /daily for more tasks', {
-                            parse_mode: 'Markdown'
-                        });
-                        watchingUsers.delete(userId);
-                        bot.answerCallbackQuery(callbackQuery.id, { 
-                            text: '✅ Task completed successfully!'
-                        });
-                    }
-                });
-            } else {
-                bot.sendMessage(msg.chat.id, '❌ You have already completed this task today.');
+        db.get(`SELECT points FROM tasks WHERE id = ?`, [taskIdNum], (err, task: any) => {
+            if (err || !task) {
                 bot.answerCallbackQuery(callbackQuery.id, { 
-                    text: '❌ Task already completed'
+                    text: '❌ Error completing task'
                 });
+                return;
             }
+
+            db.run(`INSERT INTO completed_tasks (user_id, task_id, completed_at) VALUES (?, ?, datetime('now'))`, 
+                [userId, taskIdNum], (err) => {
+                if (!err) {
+                    db.run(`UPDATE users SET points = points + ? WHERE telegram_id = ?`, 
+                        [task.points, userId], (err) => {
+                        if (!err) {
+                            bot.editMessageReplyMarkup({
+                                inline_keyboard: [[
+                                    { text: '✅ Task Completed', callback_data: 'completed' }
+                                ]]
+                            }, {
+                                chat_id: msg.chat.id,
+                                message_id: msg.message_id
+                            });
+                            bot.sendMessage(msg.chat.id, 
+                                '🎉 *Task Completed!*\n\n' +
+                                `🎯 You earned ${task.points} points!\n` +
+                                '💰 Use /balance to check your earnings\n' +
+                                '📝 Use /daily for more tasks', {
+                                parse_mode: 'Markdown'
+                            });
+                            watchingUsers.delete(userId);
+                            bot.answerCallbackQuery(callbackQuery.id, { 
+                                text: '✅ Task completed successfully!'
+                            });
+                        }
+                    });
+                } else {
+                    bot.sendMessage(msg.chat.id, '❌ You have already completed this task today.');
+                    bot.answerCallbackQuery(callbackQuery.id, { 
+                        text: '❌ Task already completed'
+                    });
+                }
+            });
         });
     }
 })

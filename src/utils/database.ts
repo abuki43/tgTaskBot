@@ -28,6 +28,7 @@ db.serialize(() => {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             video_url TEXT NOT NULL,
+            points INTEGER DEFAULT 20,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 

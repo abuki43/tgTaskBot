@@ -10,6 +10,7 @@ interface Task {
     id: number;
     title: string;
     video_url: string;
+    points: number;
 } 
 
 export async function handleStart(msg: TelegramBot.Message, bot:TelegramBot) {
@@ -288,7 +289,7 @@ export async function handleBalance(msg: TelegramBot.Message, bot:TelegramBot) {
     });
 }
 
-export async function handleDaily(msg: TelegramBot.Message,bot:TelegramBot) {
+export async function handleDaily(msg: TelegramBot.Message, bot: TelegramBot) {
     const chatId = msg.chat.id;
     db.all(`
         SELECT t.* FROM tasks t
@@ -310,17 +311,10 @@ export async function handleDaily(msg: TelegramBot.Message,bot:TelegramBot) {
             return;
         }
 
-        // bot.sendMessage(chatId, 
-        //     '📋 *Daily Tasks Available*\n\n' +
-        //     '💫 Complete these tasks to earn points!\n' +
-        //     '⏱ Each task requires 20 seconds of watching\n' +
-        //     '🎯 Earn 20 points per completed task', {
-        //     parse_mode: 'Markdown'
-        // });
-
         tasks.forEach((task) => {
             bot.sendMessage(chatId, 
                 `📝 *Task:* ${task.title}\n\n` +
+                `💰 *Reward:* ${task.points} points\n\n` +
                 `ℹ️ *Instructions:*\n` +
                 `1️⃣ Click "Watch Video" to start\n` +
                 `2️⃣ Watch for at least 20 seconds\n` +
