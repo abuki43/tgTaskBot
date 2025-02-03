@@ -146,8 +146,10 @@ ${stats.referred_by ? '🔄 You were referred by someone' : ''}
     });
 }
 
-export async function handleWithdraw(msg: TelegramBot.Message, adminBot: TelegramBot,bot:TelegramBot, adminChatId: string) {
+export async function handleWithdraw(msg: TelegramBot.Message, adminBot: TelegramBot, bot: TelegramBot, adminChatId: string) {
     const chatId = msg.chat.id;
+    const username = msg.from?.username || '?';
+    const fullName = [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(' ') || '?';
 
     // Check user membership
     if (!await checkUserMembership(chatId)) {
@@ -181,8 +183,6 @@ export async function handleWithdraw(msg: TelegramBot.Message, adminBot: Telegra
 
             bot.once('message', async (pointsMsg) => {
                 const pointsToWithdraw = parseInt(pointsMsg.text || '0', 10);
-
-            
                 
                 if (isNaN(pointsToWithdraw) || pointsToWithdraw < 30) {
                     bot.sendMessage(chatId, '❌ Minimum withdrawal amount is 30 points.');
@@ -198,10 +198,12 @@ export async function handleWithdraw(msg: TelegramBot.Message, adminBot: Telegra
                     [chatId, pointsToWithdraw], (err) => {
                     if (!err) {
                         bot.sendMessage(chatId, '✅ Your withdrawal request has been sent to admin for approval.');
-                        // Notify admin
+                        // Notify admin with user details
                         adminBot.sendMessage(adminChatId, 
                             `🆕 *New Withdrawal Request*\n\n` +
-                            `👤 User ID: ${chatId}\n` +
+                            `👤 User: ${fullName}\n` +
+                            `🔗 Username: @${username}\n` +
+                            `🆔 ID: \`${chatId}\`\n` +
                             `💰 Requested: ${pointsToWithdraw} points\n` +
                             `💳 Current Balance: ${row.points} points\n` +
                             `\n*Payment Details:*\n` +

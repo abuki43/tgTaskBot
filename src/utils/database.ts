@@ -51,7 +51,6 @@ db.serialize(() => {
             processed_at DATETIME
         )`);
 
-        // Insert demo tasks if they don't exist
         db.get(`SELECT COUNT(*) as count FROM tasks`, [], (err, row: any) => {
             if (row.count === 0) {
                 const demoTasks = [
@@ -65,7 +64,6 @@ db.serialize(() => {
             }
         });
 
-        // Add referrals table
         db.run(`CREATE TABLE IF NOT EXISTS referrals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             referrer_id TEXT NOT NULL,
@@ -82,12 +80,11 @@ db.serialize(() => {
     }
 });
 
-// Add error handler for the database connection
+
 db.on('error', (err) => {
     console.error('Database error:', err);
 });
 
-// Add these helper functions for referrals
 export async function addReferral(referrerId: string, referredId: string): Promise<boolean> {
     return new Promise((resolve) => {
         db.serialize(() => {
