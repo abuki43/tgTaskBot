@@ -1,0 +1,121 @@
+// Updated daily tasks implementation
+// bot.onText(/\/daily/, (msg) => {
+//     const chatId = msg.chat.id;
+//     db.all(`
+//         SELECT t.* FROM tasks t
+//         WHERE NOT EXISTS (
+//             SELECT 1 FROM completed_tasks ct 
+//             WHERE ct.task_id = t.id 
+//             AND ct.user_id = ? 
+//             AND DATE(ct.completed_at) = DATE('now')
+//         )
+//         LIMIT 5
+//     `, [chatId], (err, tasks: Task[]) => {
+//         if (err || tasks.length === 0) {
+//             bot.sendMessage(chatId, '📺 No more tasks available for today.');
+//             return;
+//         }
+//         tasks.forEach((task) => {
+//             bot.sendMessage(chatId, 
+//                 `📝 *Task:* ${task.title}\n` +
+//                 `🎥 *Video:* ${task.video_url}`, {
+//                 parse_mode: 'Markdown',
+//                 reply_markup: {
+//                     inline_keyboard: [[
+//                         { text: '▶️ Watch Video', callback_data: `watch_${task.id}` },
+//                         { text: '✅ Finish Task', callback_data: `finish_${task.id}` }
+//                     ]]
+//                 }
+//             });
+//         });
+//     });
+// });
+
+// // Handle video watching
+// bot.on('callback_query', (callbackQuery) => {
+//     const msg = callbackQuery.message;
+//     const data = callbackQuery.data;
+//     if (!msg || !data) return;
+
+//     const userId = msg.chat.id;
+    
+//     if (data.startsWith('watch_')) {
+//         const taskId = data.split('_')[1];
+//         const taskIdNum = parseInt(taskId, 10);
+        
+//         // Get video URL from database
+//         db.get(`SELECT video_url FROM tasks WHERE id = ?`, [taskIdNum], (err, task: any) => {
+//             if (err || !task) {
+//                 bot.answerCallbackQuery(callbackQuery.id, { 
+//                     text: '❌ Error loading video'
+//                 });
+//                 return;
+//             }
+
+//             // Start watching
+//             watchingUsers.set(userId, { taskId: taskIdNum, startTime: Date.now() });
+            
+//             bot.answerCallbackQuery(callbackQuery.id, { 
+//                 text: '▶️ Video started. Watch for at least 20 seconds.'
+//             });
+            
+//             // Send the video URL as a separate message
+//             bot.sendMessage(userId, `🎥 Watch video here: ${task.video_url}`);
+//         });
+//     }
+    
+//     else if (data.startsWith('finish_')) {
+//         const taskId = data.split('_')[1];
+//         const taskIdNum = parseInt(taskId, 10);
+//         const watchingData = watchingUsers.get(userId);
+        
+//         // Check if user has started watching
+//         if (!watchingData || watchingData.taskId !== taskIdNum) {
+//             bot.answerCallbackQuery(callbackQuery.id, { 
+//                 text: '⚠️ Please watch the video first!',
+//                 show_alert: true
+//             });
+//             return;
+//         }
+
+//         // Check if enough time has passed
+//         const timeSpent = (Date.now() - watchingData.startTime) / 1000;
+//         if (timeSpent < 20) {
+//             bot.answerCallbackQuery(callbackQuery.id, { 
+//                 text: `⏳ Please watch for ${Math.ceil(20 - timeSpent)} more seconds`,
+//                 show_alert: true
+//             });
+//             return;
+//         }
+
+//         // Complete the task
+//         db.run(`INSERT INTO completed_tasks (user_id, task_id, completed_at) VALUES (?, ?, datetime('now'))`, 
+//             [userId, taskIdNum], (err) => {
+//             if (!err) {
+//                 db.run(`UPDATE users SET points = points + 20 WHERE telegram_id = ?`, 
+//                     [userId], (err) => {
+//                     if (!err) {
+//                         bot.editMessageReplyMarkup({
+//                             inline_keyboard: [[
+//                                 { text: '✅ Task Completed', callback_data: 'completed' }
+//                             ]]
+//                         }, {
+//                             chat_id: msg.chat.id,
+//                             message_id: msg.message_id
+//                         });
+//                         bot.sendMessage(msg.chat.id, '🎉 Task completed! You earned 20 points! 🎉');
+//                         watchingUsers.delete(userId);
+//                         bot.answerCallbackQuery(callbackQuery.id, { 
+//                             text: '✅ Task completed successfully!'
+//                         });
+//                     }
+//                 });
+//             } else {
+//                 bot.sendMessage(msg.chat.id, '❌ You have already completed this task today.');
+//                 bot.answerCallbackQuery(callbackQuery.id, { 
+//                     text: '❌ Task already completed'
+//                 });
+//             }
+//         });
+//     }
+// });
